@@ -1,0 +1,60 @@
+{
+  "name": "MERN Pomodoro App",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+
+  "features": {
+    "ghcr.io/devcontainers/features/google-cloud-cli:1": {
+      "version": "latest",
+      "installGcloudAlpha": true,
+      "installGcloudBeta": true
+    },
+    "ghcr.io/devcontainers/features/mongodb:1": {
+      "version": "7.0"
+    }
+  },
+
+  "forwardPorts": [5050, 5173, 27017],
+
+  "portsAttributes": {
+    "5050": {
+      "label": "Backend API",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Frontend Dev Server",
+      "onAutoForward": "notify"
+    },
+    "27017": {
+      "label": "MongoDB",
+      "onAutoForward": "silent"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "mongodb.mongodb-vscode",
+        "googlecloudtools.cloudcode",
+        "ms-azuretools.vscode-docker",
+        "bradlc.vscode-tailwindcss"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        }
+      }
+    }
+  },
+
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+
+  "remoteUser": "node",
+
+  "mounts": [
+    "source=${localEnv:HOME}/.config/gcloud,target=/home/node/.config/gcloud,type=bind,consistency=cached"
+  ]
+}

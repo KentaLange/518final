@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -9,6 +10,7 @@ export default function Dashboard() {
     totalHours: 0,
   });
   const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
 
   useEffect(() => {
     fetchStats();
@@ -16,7 +18,11 @@ export default function Dashboard() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:5050/session/stats/summary');
+      const response = await fetch('http://localhost:5050/session/stats/summary', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
       setStats(data);
       setLoading(false);

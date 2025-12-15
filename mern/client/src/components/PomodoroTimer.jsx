@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function PomodoroTimer() {
   const [minutes, setMinutes] = useState(25);
@@ -7,11 +9,13 @@ export default function PomodoroTimer() {
   const [sessionType, setSessionType] = useState('work');
   const [sessionId, setSessionId] = useState(null);
   const [notes, setNotes] = useState('');
+  const [customWorkTime, setCustomWorkTime] = useState(25);
   const intervalRef = useRef(null);
+  const { isAuthenticated, token } = useAuth();
 
-  const WORK_TIME = 25;
   const SHORT_BREAK = 5;
   const LONG_BREAK = 15;
+  const TIME_OPTIONS = [5, 10, 15, 20, 25, 30, 45, 60];
 
   useEffect(() => {
     if (isActive && (minutes > 0 || seconds > 0)) {
@@ -36,12 +40,17 @@ export default function PomodoroTimer() {
 
   const startTimer = async () => {
     if (!isActive) {
-      const duration = sessionType === 'work' ? WORK_TIME : sessionType === 'short-break' ? SHORT_BREAK : LONG_BREAK;
+      const duration = sessionType === 'work' ? customWorkTime : sessionType === 'short-break' ? SHORT_BREAK : LONG_BREAK;
 
       try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetch('http://localhost:5050/session', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             type: sessionType,
             duration: duration,
@@ -66,7 +75,7 @@ export default function PomodoroTimer() {
     setIsActive(false);
     setSeconds(0);
     if (sessionType === 'work') {
-      setMinutes(WORK_TIME);
+      setMinutes(customWorkTime);
     } else if (sessionType === 'short-break') {
       setMinutes(SHORT_BREAK);
     } else {
@@ -79,9 +88,14 @@ export default function PomodoroTimer() {
 
     if (sessionId) {
       try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
         await fetch(`http://localhost:5050/session/${sessionId}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             completed: true,
             endTime: new Date().toISOString(),
@@ -103,7 +117,7 @@ export default function PomodoroTimer() {
     setIsActive(false);
     setSeconds(0);
     if (type === 'work') {
-      setMinutes(WORK_TIME);
+      setMinutes(customWorkTime);
     } else if (type === 'short-break') {
       setMinutes(SHORT_BREAK);
     } else {
@@ -111,11 +125,21 @@ export default function PomodoroTimer() {
     }
   };
 
+  const handleTimeChange = (newTime) => {
+    if (!isActive) {
+      setCustomWorkTime(newTime);
+      if (sessionType === 'work') {
+        setMinutes(newTime);
+      }
+    }
+  };
+
   return (
-    <div className="max-w-2xl mx-auto mt-8 p-8 bg-white rounded-lg shadow-lg">
-      <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
-        Pomodoro Timer
-      </h1>
+    <div className="min-h-screen flex items-center justify-center py-8 px-4">
+      <div className="max-w-3xl w-full p-8 bg-white rounded-lg shadow-lg">
+        <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
+          Pomodoro Timer
+        </h1>
 
       <div className="flex justify-center gap-4 mb-8">
         <button
@@ -150,8 +174,83 @@ export default function PomodoroTimer() {
         </button>
       </div>
 
+      {sessionType === 'work' && (
+        <div className="mb-8">
+          <label className="block text-center text-sm font-medium text-gray-700 mb-3">
+            {isAuthenticated ? 'Set Work Duration' : 'Select Work Duration'}
+          </label>
+
+          {isAuthenticated ? (
+            <div className="max-w-xs mx-auto">
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  value={customWorkTime}
+                  onChange={(e) => handleTimeChange(parseInt(e.target.value) || 1)}
+                  disabled={isActive}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                  placeholder="Enter minutes"
+                />
+                <span className="text-gray-600 text-sm whitespace-nowrap">minutes</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Enter any duration between 1-120 minutes
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap justify-center gap-2">
+                {TIME_OPTIONS.map((time) => (
+                  <button
+                    key={time}
+                    onClick={() => handleTimeChange(time)}
+                    disabled={isActive}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      customWorkTime === time
+                        ? 'bg-red-500 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    } ${isActive ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {time} min
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-3 text-center">
+                <Link to="/login" className="text-red-500 hover:underline">Sign in</Link> to use custom durations
+              </p>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="text-center mb-8">
-        <div className="text-8xl font-bold text-gray-800 mb-4">
+        {/* Animated Tomato with Progress Ring */}
+        <div className="flex justify-center mb-6">
+          <div className={isActive ? 'progress-ring' : ''}>
+            <div
+              className={`text-9xl transition-all duration-300 ${
+                isActive
+                  ? minutes === 0 && seconds <= 10 && seconds > 0
+                    ? 'tomato-wiggle'
+                    : sessionType === 'work'
+                    ? 'tomato-spin'
+                    : 'tomato-float'
+                  : 'tomato-pulse'
+              }`}
+              style={{
+                filter: isActive ? 'drop-shadow(0 10px 20px rgba(0,0,0,0.3))' : 'none'
+              }}
+            >
+              {sessionType === 'work' ? '🍅' : sessionType === 'short-break' ? '☕' : '🌴'}
+            </div>
+          </div>
+        </div>
+
+        <div className={`text-8xl font-bold mb-4 transition-colors ${
+          minutes === 0 && seconds <= 10 && isActive ? 'text-red-600' : 'text-gray-800'
+        }`}>
           {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
         </div>
         <p className="text-xl text-gray-600 capitalize">{sessionType.replace('-', ' ')}</p>
@@ -198,11 +297,13 @@ export default function PomodoroTimer() {
         <h3 className="font-semibold text-gray-800 mb-2">How to use:</h3>
         <ul className="text-sm text-gray-600 space-y-1">
           <li>1. Choose your session type (Work/Short Break/Long Break)</li>
-          <li>2. Click Start to begin your timer</li>
-          <li>3. Focus on your task until the timer completes</li>
-          <li>4. Take breaks between work sessions</li>
-          <li>5. Add notes to track your progress</li>
+          <li>2. Select your preferred work duration (5-60 minutes)</li>
+          <li>3. Click Start to begin your timer</li>
+          <li>4. Focus on your task until the timer completes</li>
+          <li>5. Take breaks between work sessions</li>
+          <li>6. Add notes to track your progress</li>
         </ul>
+      </div>
       </div>
     </div>
   );

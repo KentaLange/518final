@@ -8,6 +8,10 @@ import App from "./App";
 import PomodoroTimer from "./components/PomodoroTimer";
 import SessionHistory from "./components/SessionHistory";
 import Dashboard from "./components/Dashboard";
+import Login from "./components/Login";
+import Register from "./components/Register";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthProvider } from "./context/AuthContext";
 import "./index.css";
 
 const router = createBrowserRouter([
@@ -21,18 +25,36 @@ const router = createBrowserRouter([
       },
       {
         path: "/history",
-        element: <SessionHistory />,
+        element: (
+          <ProtectedRoute>
+            <SessionHistory />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/dashboard",
-        element: <Dashboard />,
+        element: (
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        ),
       },
     ],
+  },
+  {
+    path: "/login",
+    element: <Login />,
+  },
+  {
+    path: "/register",
+    element: <Register />,
   },
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   </React.StrictMode>
 );

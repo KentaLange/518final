@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 export default function SessionHistory() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
 
   useEffect(() => {
     fetchSessions();
@@ -10,7 +12,11 @@ export default function SessionHistory() {
 
   const fetchSessions = async () => {
     try {
-      const response = await fetch('http://localhost:5050/session');
+      const response = await fetch('http://localhost:5050/session', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
       setSessions(data);
       setLoading(false);
@@ -28,6 +34,9 @@ export default function SessionHistory() {
     try {
       await fetch(`http://localhost:5050/session/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       fetchSessions();
     } catch (error) {
